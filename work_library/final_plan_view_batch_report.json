@@ -1,0 +1,10 @@
+{
+  "source_files_after_first_8": 497,
+  "unique_representatives": 391,
+  "duplicate_sources": 106,
+  "pipeline": [
+    "flat-lay base",
+    "detail-preserving retouch"
+  ],
+  "output_size": 1536
+}

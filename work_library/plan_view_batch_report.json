@@ -1,0 +1,8 @@
+{
+  "source_files_after_first_8": 497,
+  "unique_images_to_generate": 391,
+  "duplicate_source_files": 106,
+  "output_size": 1536,
+  "reference": "C:\\Users\\ZORN\\OneDrive\\桌面\\Model\\example_library\\plan-view.png",
+  "model_requested": "gpt-image-2.5"
+}

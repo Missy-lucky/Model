@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "C:\Users\ZORN\OneDrive\×ÀÃæ\Model\process_work_library.py", line 321, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\ZORN\OneDrive\×ÀÃæ\Model\process_work_library.py", line 255, in main
+    source = load_rgb(primary.path)
+  File "C:\Users\ZORN\OneDrive\×ÀÃæ\Model\process_work_library.py", line 80, in load_rgb
+    image.load()
+    ~~~~~~~~~~^^
+  File "C:\Users\ZORN\AppData\Roaming\Python\Python313\site-packages\PIL\ImageFile.py", line 409, in load
+    raise OSError(msg)
+OSError: image file is truncated (37 bytes not processed)

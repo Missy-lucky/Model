@@ -1,0 +1,9 @@
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+final_plan_view_cache/
+plan_view_upload_cache/

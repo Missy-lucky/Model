@@ -16,5 +16,6 @@ LongY_Studio/desktop_error.log
 build/
 dist/
 workflow_runs/
+_research/
 LongY_Studio/assets/models/*.onnx
 !LongY_Studio/assets/models/README.md

@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import Qt
 
 import desktop_app
 from desktop_app import MainWindow
@@ -32,10 +31,23 @@ def test_window_starts_in_chinese_and_has_core_views(window: MainWindow) -> None
     assert window.language == "zh"
     assert window.nav_buttons["workbench"].text() == "工作台"
     assert window.backend_combo.currentText() == "无 AI / 确定性处理"
-    assert window.node_tree.topLevelItemCount() > 0
+    assert len(window.workflow_canvas.node_items) > 0
     assert window.queue_table.rowCount() > 0
     assert window.product_list.count() > 0
     assert "LongY Studio" in window.windowTitle()
+
+
+def test_home_dashboard_renders_reference_style_shell(window: MainWindow) -> None:
+    assert window.stack.currentIndex() == 0
+    assert window.sidebar_widget.width() == 88
+    assert not window.nav_buttons["home"].icon().isNull()
+    assert not window.hero_card.background.isNull()
+    assert window.nav_buttons["home"].isChecked()
+    assert window.hero_title.text() == "生产环境就绪"
+    assert window.home_run_button.text() == "一键启动"
+    assert len(window.home_stat_cards) == 4
+    assert len(window.environment_cards) == 4
+    assert window.home_recent_table.rowCount() > 0
 
 
 def test_language_switch_updates_and_persists(window: MainWindow, tmp_path: Path) -> None:
@@ -95,25 +107,37 @@ def test_full_studio_nodes_are_localized(window: MainWindow) -> None:
     window.current_recipe = "full-studio"
     window.current_state = window.state_for(window.current_number, "full-studio")
     window.render_nodes()
-    texts = [window.node_tree.topLevelItem(index).text(0) for index in range(window.node_tree.topLevelItemCount())]
+    texts = [item.title for item in window.workflow_canvas.node_items.values()]
     assert "输入规范化" in texts
     assert "平面图" in texts
     assert "模特生成" in texts
     assert "人工审核" in texts
+    assert "workflow_canvas" in window.__dict__
+    assert any(item.status in {"通过", "需人工", "等待上游", "排队中"} for item in window.workflow_canvas.node_items.values())
+
+
+def test_queue_shows_serial_pending_runs(window: MainWindow) -> None:
+    window.pending_runs.append({"number": "172", "recipe": "white-main"})
+    window.render_queue()
+    assert window.queue_table.rowCount() > 1
+    assert window.queue_table.item(0, 4).text() == "排队中"
+    window.pending_runs.clear()
+    window.render_queue()
 
 
 def test_artifact_preview_loads_image_artifact(window: MainWindow) -> None:
-    target_row = None
-    for index in range(window.node_tree.topLevelItemCount()):
-        item = window.node_tree.topLevelItem(index)
-        if item.data(0, Qt.UserRole) in {"white_main", "detail_grid", "model_reference_sheet"}:
-            target_row = index
+    target_item = None
+    for name, item in window.workflow_canvas.node_items.items():
+        if name in {"white_main", "detail_grid", "model_reference_sheet"}:
+            target_item = item
             break
 
-    if target_row is None:
+    if target_item is None:
         pytest.skip("No image-producing node state available")
 
-    window.node_tree.setCurrentItem(window.node_tree.topLevelItem(target_row))
+    window.workflow_canvas.scene.clearSelection()
+    target_item.setSelected(True)
+    window.show_selected_node_by_name(target_item.name)
     assert window.artifact_list.count() > 0
     assert not window.artifact_preview.pixmap().isNull()
 

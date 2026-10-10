@@ -6,7 +6,7 @@ import os
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QByteArray, QThread, QTimer, QUrl, Qt, Signal
+from PySide6.QtCore import QByteArray, QSize, QThread, QTimer, QUrl, Qt, Signal
 from PySide6.QtGui import QAction, QDesktopServices, QFont, QIcon, QKeySequence, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
     QSplitter,
     QStackedWidget,
     QStatusBar,
+    QTabWidget,
     QTableWidget,
     QTableWidgetItem,
     QTextBrowser,
@@ -39,6 +40,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from widgets import CanvasNodeSpec, Card, ClickableCard, HeroCard, StatCard, WorkflowCanvas
 
 from apparel_studio import (
     ROOT,
@@ -73,6 +75,7 @@ TEXT = {
         "brand": "LongY Studio",
         "brand_sub": "服装图片生产",
         "nav_workbench": "工作台",
+        "nav_home": "启动页",
         "nav_templates": "模板库",
         "nav_queue": "队列",
         "nav_backends": "后端",
@@ -87,6 +90,26 @@ TEXT = {
         "refresh": "刷新",
         "language_button": "EN",
         "workbench_title": "工作台",
+        "home_title": "启动页",
+        "home_sub": "生产状态、环境健康与快速入口",
+        "hero_ready": "生产环境就绪",
+        "hero_caption": "原图只读 · 节点可追踪 · AI 后端可选",
+        "go_workbench": "进入工作台",
+        "launch_workflow": "一键启动",
+        "environment": "环境状态",
+        "runtime_ready": "桌面运行时",
+        "segmentation_ready": "服装分割模型",
+        "product_store": "商品数据库",
+        "output_store": "产物目录",
+        "ready": "正常",
+        "missing": "缺失",
+        "quick_actions": "快速启动",
+        "recent_runs": "最近运行",
+        "no_recent_runs": "暂无运行记录",
+        "runtime_detail": "PySide6 与工作流引擎已加载",
+        "segmentation_detail": "本地 ONNX 分割可用",
+        "product_detail": "workflow_products 已连接",
+        "output_detail": "workflow_runs 已连接",
         "workbench_sub": "商品资料、节点链路与运行状态",
         "templates_title": "模板库",
         "templates_sub": "按用途选择生产链路",
@@ -167,6 +190,9 @@ TEXT = {
         "create_ok": "商品已创建",
         "run_started": "工作流已启动",
         "run_done": "工作流完成",
+        "queued_run": "已加入队列",
+        "start_next": "继续队列",
+        "queue_pending": "排队中",
         "json_error": "JSON 格式错误",
         "select_product": "请选择商品",
         "select_node": "请选择节点",
@@ -192,6 +218,7 @@ TEXT = {
         "brand": "LongY Studio",
         "brand_sub": "Apparel image production",
         "nav_workbench": "Workbench",
+        "nav_home": "Home",
         "nav_templates": "Templates",
         "nav_queue": "Queue",
         "nav_backends": "Backends",
@@ -206,6 +233,26 @@ TEXT = {
         "refresh": "Refresh",
         "language_button": "中文",
         "workbench_title": "Workbench",
+        "home_title": "Home",
+        "home_sub": "Production status, environment health, and quick launch",
+        "hero_ready": "Production environment ready",
+        "hero_caption": "Read-only sources · traceable nodes · optional AI backend",
+        "go_workbench": "Open workbench",
+        "launch_workflow": "Launch now",
+        "environment": "Environment",
+        "runtime_ready": "Desktop runtime",
+        "segmentation_ready": "Segmentation model",
+        "product_store": "Product database",
+        "output_store": "Output store",
+        "ready": "Ready",
+        "missing": "Missing",
+        "quick_actions": "Quick launch",
+        "recent_runs": "Recent runs",
+        "no_recent_runs": "No runs yet",
+        "runtime_detail": "PySide6 and workflow engine loaded",
+        "segmentation_detail": "Local ONNX segmentation available",
+        "product_detail": "workflow_products connected",
+        "output_detail": "workflow_runs connected",
         "workbench_sub": "Product record, node chain, and run state",
         "templates_title": "Templates",
         "templates_sub": "Select a production chain by use case",
@@ -286,6 +333,9 @@ TEXT = {
         "create_ok": "Product created",
         "run_started": "Workflow started",
         "run_done": "Workflow finished",
+        "queued_run": "Added to queue",
+        "start_next": "Continue queue",
+        "queue_pending": "Queued",
         "json_error": "Invalid JSON",
         "select_product": "Select a product",
         "select_node": "Select a node",
@@ -361,6 +411,35 @@ BRANCH_NAMES = {
     "en": {key: key for key in {"common", "plan-view", "white-main", "detail", "model", "colorway", "channel", "qc", "review", "legacy"}},
 }
 
+PAGE_KEYS = ["home", "workbench", "templates", "queue", "backends", "logs", "help"]
+PAGE_ICONS = {
+    "home": "home.svg",
+    "workbench": "workbench.svg",
+    "templates": "templates.svg",
+    "queue": "queue.svg",
+    "backends": "backend.svg",
+    "logs": "logs.svg",
+    "help": "help.svg",
+}
+RECIPE_ICONS = {
+    "plan-view": "shirt.svg",
+    "white-main": "white-main.svg",
+    "detail-sheet": "detail.svg",
+    "on-model": "model.svg",
+    "colorway": "colorway.svg",
+    "marketplace-pack": "channel.svg",
+    "full-studio": "full.svg",
+}
+RECIPE_COLORS = {
+    "plan-view": "#63B3ED",
+    "white-main": "#63C8B8",
+    "detail-sheet": "#B79CED",
+    "on-model": "#EF8FB5",
+    "colorway": "#F2A65A",
+    "marketplace-pack": "#DCBM5B",
+    "full-studio": "#F28B2C",
+}
+
 STATUS_COLORS = {
     "pending": "#65707d", "running": "#0054a6", "passed": "#107c10",
     "failed": "#c42b1c", "needs_human": "#9d5d00", "blocked": "#68717a", "skipped": "#68717a",
@@ -402,35 +481,64 @@ ANNOUNCEMENTS = {
 
 
 STYLE = """
-QWidget { font-family: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI"; font-size: 12px; color: #1b1f23; }
-QMainWindow { background: #f2f3f5; }
-#Sidebar { background: #ebedf0; border-right: 1px solid #d5d9de; }
-#BrandMark { background: #0067c0; color: white; border-radius: 5px; font-weight: 700; }
-#BrandName { font-size: 13px; font-weight: 650; }
-#BrandSub, #SectionLabel, #Muted { color: #616b75; font-size: 11px; }
-#Header { background: #f7f8fa; border-bottom: 1px solid #d5d9de; }
-#PageTitle { font-size: 16px; font-weight: 650; }
-#Announcement { background: #f7fafd; border: 1px solid #d8dce1; border-radius: 5px; }
-QPushButton, QLineEdit, QComboBox { min-height: 25px; padding: 2px 7px; border-radius: 4px; }
-QPushButton { background: #ffffff; border: 1px solid #bfc5cb; }
-QPushButton:hover { background: #f5f7f9; }
-QPushButton:disabled { color: #8d959c; background: #eef0f2; }
-QPushButton#Primary { background: #0067c0; border: 1px solid #005a99; color: white; font-weight: 600; }
-QPushButton#Primary:hover { background: #1975c5; }
-QPushButton#NavButton { background: transparent; border: 0; text-align: left; padding: 4px 7px; }
-QPushButton#NavButton:hover { background: #e2e6ea; }
-QPushButton#NavButton:checked { background: #dde9f5; color: #003f74; font-weight: 600; }
-QLineEdit, QComboBox, QTextEdit, QTreeWidget, QTableWidget, QListWidget {
-    background: #ffffff; border: 1px solid #c9ced4; border-radius: 4px; selection-background-color: #dce9f6;
+QWidget {
+    font-family: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI";
+    font-size: 12px; color: #E7EBF0; background: transparent;
 }
-QFrame#Panel { background: #ffffff; border: 1px solid #d5d9de; border-radius: 6px; }
-QLabel#PanelTitle { font-size: 12px; font-weight: 650; color: #303740; }
+QMainWindow, #Central { background: #171B20; }
+#Sidebar { background: #1D2228; border-right: 1px solid #2C323B; }
+#BrandMark { background: #F28B2C; color: #201307; border-radius: 6px; font-weight: 800; }
+#BrandName { font-size: 10px; font-weight: 750; color: #F7F9FB; }
+#BrandSub { font-size: 8.5px; color: #8792A0; letter-spacing: 1px; }
+#SectionLabel { color: #8792A0; font-size: 10.5px; font-weight: 650; }
+#Muted { color: #8B96A3; }
+#Header { background: #1B2026; border-bottom: 1px solid #2C323B; }
+#PageTitle { font-size: 16px; font-weight: 650; }
+#Announcement { background: #212730; border: 1px solid #353D49; border-radius: 6px; }
+QToolTip { background: #252B33; color: #EEF2F6; border: 1px solid #3C4551; }
+QPushButton, QLineEdit, QComboBox { min-height: 26px; padding: 3px 8px; border-radius: 5px; }
+QPushButton { background: #283039; color: #E9EDF2; border: 1px solid #3A434F; font-weight: 550; }
+QPushButton:hover { background: #313A45; border-color: #556070; }
+QPushButton:pressed { background: #232932; }
+QPushButton:disabled { color: #737D89; background: #232830; border-color: #2C333D; }
+QPushButton#Primary { background: #F28B2C; border: 1px solid #C9701B; color: #201307; font-weight: 700; }
+QPushButton#Primary:hover { background: #FF9B3D; }
+QPushButton#QuickAction { background: #242B33; border: 1px solid #3A434F; color: #E9EDF2; text-align: left; }
+QPushButton#QuickAction:hover { background: #2C3540; border-color: #5E6B7B; }
+QPushButton#NavButton {
+    background: transparent; border: 1px solid transparent; border-radius: 8px;
+    padding: 4px 2px; font-size: 10px; text-align: center; color: #C8D1DB;
+}
+QPushButton#NavButton:hover { background: #272E37; }
+QPushButton#NavButton:checked { background: #332720; border: 1px solid #6C4424; color: #FFCF95; font-weight: 700; }
+QLineEdit, QComboBox, QTextEdit, QTreeWidget, QTableWidget, QListWidget {
+    background: #191F25; border: 1px solid #353D48; border-radius: 5px;
+    selection-background-color: #644021; selection-color: #FFFFFF; alternate-background-color: #1D242B;
+}
+QComboBox QAbstractItemView { background: #20262E; border: 1px solid #3E4854; }
+QFrame#Panel { background: #1E242B; border: 1px solid #303843; border-radius: 8px; }
+QLabel#PanelTitle { font-size: 12px; font-weight: 700; color: #F2F5F8; }
+QLabel#StatTitle { color: #9AA5B1; font-size: 11px; }
+QLabel#StatValue { color: #FFFFFF; font-size: 22px; font-weight: 750; }
+QLabel#StatCaption { color: #8792A0; font-size: 10.5px; }
+QLabel#HeroTitle { color: #FFFFFF; font-size: 22px; font-weight: 780; }
+QLabel#HeroSubtitle { color: #B9C2CC; font-size: 12px; }
+QLabel#SectionHeader { color: #D9DEE5; font-size: 13px; font-weight: 700; }
 QTreeWidget::item, QTableWidget::item { min-height: 24px; }
-QHeaderView::section { background: #fbfcfd; color: #5c666f; border: 0; border-bottom: 1px solid #d5d9de; padding: 5px; font-size: 11px; }
+QHeaderView::section {
+    background: #232A32; color: #98A3AF; border: 0; border-bottom: 1px solid #333C47;
+    padding: 6px; font-size: 11px;
+}
 QListWidget::item { height: 27px; padding: 3px 6px; border-radius: 4px; }
-QListWidget::item:selected { background: #dde9f5; color: #003f74; }
-QStatusBar { color: #616b75; background: #f7f8fa; border-top: 1px solid #d5d9de; }
+QListWidget::item:selected { background: #3A2B21; color: #FFD4A5; }
+QTableWidget::item:selected { background: #3A2B21; color: #FFD4A5; }
+QStatusBar { color: #8B96A3; background: #1B2026; border-top: 1px solid #2C323B; }
 QScrollArea { border: 0; background: transparent; }
+QSplitter::handle { background: #22282F; }
+QCheckBox::indicator, QRadioButton::indicator { width: 14px; height: 14px; }
+QTabWidget::pane { border: 1px solid #333C47; border-radius: 6px; background: #1D232A; }
+QTabBar::tab { background: #232A32; color: #A9B3BE; padding: 6px 11px; border-radius: 5px; margin-right: 3px; }
+QTabBar::tab:selected { background: #3A2B21; color: #FFD0A0; font-weight: 700; }
 """
 
 
@@ -444,6 +552,12 @@ class RunWorker(QThread):
         self.recipe = recipe
         self.backend = backend
         self.force = force
+        self.item = {
+            "number": str(product["id"]),
+            "recipe": recipe,
+            "backend": backend,
+            "force": force,
+        }
 
     def run(self) -> None:
         try:
@@ -494,6 +608,7 @@ class MainWindow(QMainWindow):
         self.run_states: list[dict] = []
         self.current_state: dict | None = None
         self.worker: RunWorker | None = None
+        self.pending_runs: list[dict] = []
         self.setWindowTitle(TEXT[self.language]["app_title"])
         self.setWindowIcon(QIcon(str(APP_ICON)))
         self.resize(1380, 840)
@@ -516,6 +631,8 @@ class MainWindow(QMainWindow):
         return TEXT[self.language].get(key, key)
 
     def status_text(self, status: str) -> str:
+        if status == "pending":
+            return self.tr("queue_pending")
         return TEXT[self.language].get(f"status_{status}", status)
 
     def recipe_title(self, recipe: str) -> str:
@@ -558,6 +675,7 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
         self.stack.setObjectName("Stack")
         main.addWidget(self.stack, 1)
+        self.create_home()
         self.create_workbench()
         self.create_templates()
         self.create_queue()
@@ -592,7 +710,7 @@ class MainWindow(QMainWindow):
         view_menu = self.menuBar().addMenu("")
         self.menus["view"] = view_menu
         self.view_actions: dict[str, QAction] = {}
-        for index, key in enumerate(["workbench", "templates", "queue", "backends", "logs", "help"]):
+        for index, key in enumerate(PAGE_KEYS):
             action = QAction(self)
             action.triggered.connect(lambda _=False, page_index=index, page_key=key: self.switch_page(page_index, page_key))
             view_menu.addAction(action)
@@ -612,7 +730,7 @@ class MainWindow(QMainWindow):
         self.menus["help"] = help_menu
         help_action = QAction(self)
         help_action.setShortcut(QKeySequence("F1"))
-        help_action.triggered.connect(lambda: self.switch_page(5, "help"))
+        help_action.triggered.connect(lambda: self.switch_page(6, "help"))
         help_menu.addAction(help_action)
         self.menu_actions["help"] = help_action
         about_action = QAction(self)
@@ -622,57 +740,55 @@ class MainWindow(QMainWindow):
 
     def create_sidebar(self) -> QWidget:
         sidebar = QWidget()
+        self.sidebar_widget = sidebar
         sidebar.setObjectName("Sidebar")
-        sidebar.setFixedWidth(210)
+        sidebar.setFixedWidth(88)
         layout = QVBoxLayout(sidebar)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(9)
+        layout.setContentsMargins(8, 10, 8, 10)
+        layout.setSpacing(7)
 
-        brand_row = QHBoxLayout()
-        brand_row.setSpacing(8)
         mark = QLabel("LY")
         mark.setObjectName("BrandMark")
-        mark.setFixedSize(30, 30)
+        mark.setFixedSize(42, 42)
         mark.setAlignment(Qt.AlignCenter)
-        brand_text = QVBoxLayout()
-        brand_text.setSpacing(0)
         self.brand_label = QLabel()
         self.brand_label.setObjectName("BrandName")
+        self.brand_label.setAlignment(Qt.AlignCenter)
         self.brand_sublabel = QLabel()
         self.brand_sublabel.setObjectName("BrandSub")
-        brand_text.addWidget(self.brand_label)
-        brand_text.addWidget(self.brand_sublabel)
-        brand_row.addWidget(mark)
-        brand_row.addLayout(brand_text, 1)
-        layout.addLayout(brand_row)
+        self.brand_sublabel.setAlignment(Qt.AlignCenter)
+        layout.addWidget(mark)
+        layout.addWidget(self.brand_label)
+        layout.addWidget(self.brand_sublabel)
 
         self.section_nav = QLabel()
         self.section_nav.setObjectName("SectionLabel")
         layout.addWidget(self.section_nav)
         self.nav_buttons: dict[str, QPushButton] = {}
-        for index, key in enumerate(["workbench", "templates", "queue", "backends", "logs", "help"]):
+        for index, key in enumerate(PAGE_KEYS):
             button = QPushButton()
             button.setObjectName("NavButton")
             button.setCheckable(True)
             button.setChecked(index == 0)
+            button.setIconSize(QSize(20, 20))
+            icon_path = Path(__file__).resolve().parent / "assets" / "icons" / PAGE_ICONS[key]
+            if icon_path.exists():
+                button.setIcon(QIcon(str(icon_path)))
             button.clicked.connect(lambda _=False, page_index=index, key=key: self.switch_page(page_index, key))
             self.nav_buttons[key] = button
-            layout.addWidget(button)
+            button.setMinimumHeight(62)
+            layout.addWidget(button, 0)
 
-        self.section_products = QLabel()
-        self.section_products.setObjectName("SectionLabel")
-        layout.addWidget(self.section_products)
-        self.product_search = QLineEdit()
-        self.product_search.setClearButtonEnabled(True)
-        self.product_search.textChanged.connect(self.render_products)
-        layout.addWidget(self.product_search)
-        self.product_list = QListWidget()
-        self.product_list.itemSelectionChanged.connect(self.on_product_selected)
-        layout.addWidget(self.product_list, 1)
+        layout.addStretch(1)
 
         self.refresh_button = QPushButton()
+        self.refresh_button.setMinimumHeight(40)
         self.refresh_button.clicked.connect(self.load_data)
         layout.addWidget(self.refresh_button)
+        self.language_button_side = QPushButton()
+        self.language_button_side.setMinimumHeight(40)
+        self.language_button_side.clicked.connect(self.toggle_language)
+        layout.addWidget(self.language_button_side)
         return sidebar
 
     def create_header(self) -> QWidget:
@@ -700,6 +816,136 @@ class MainWindow(QMainWindow):
         self.language_button.clicked.connect(self.toggle_language)
         layout.addWidget(self.language_button)
         return header
+
+    def create_home(self) -> None:
+        page = QWidget()
+        page.setObjectName("HomePage")
+        outer = QVBoxLayout(page)
+        outer.setContentsMargins(12, 10, 12, 10)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        content = QWidget()
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(10)
+        scroll.setWidget(content)
+        outer.addWidget(scroll, 1)
+        self.stack.addWidget(page)
+
+        hero = HeroCard(str(Path(__file__).resolve().parent / "assets" / "hero-bg.jpg"))
+        self.hero_card = hero
+        hero.setMinimumHeight(142)
+        hero_layout = QHBoxLayout(hero)
+        hero_layout.setContentsMargins(18, 14, 18, 14)
+        hero_text = QVBoxLayout()
+        hero_text.setSpacing(4)
+        self.hero_title = QLabel()
+        self.hero_title.setObjectName("HeroTitle")
+        self.hero_subtitle = QLabel()
+        self.hero_subtitle.setObjectName("HeroSubtitle")
+        self.hero_caption = QLabel()
+        self.hero_caption.setObjectName("Muted")
+        hero_text.addWidget(self.hero_title)
+        hero_text.addWidget(self.hero_subtitle)
+        hero_text.addWidget(self.hero_caption)
+        hero_layout.addLayout(hero_text, 1)
+        self.home_workbench_button = QPushButton()
+        self.home_workbench_button.setObjectName("Primary")
+        self.home_workbench_button.setMinimumSize(126, 34)
+        self.home_workbench_button.clicked.connect(lambda: self.switch_page(1, "workbench"))
+        self.home_run_button = QPushButton()
+        self.home_run_button.setObjectName("Primary")
+        self.home_run_button.setMinimumSize(126, 40)
+        self.home_run_button.clicked.connect(self.launch_from_home)
+        hero_actions = QVBoxLayout()
+        hero_actions.setSpacing(6)
+        hero_actions.addWidget(self.home_run_button)
+        hero_actions.addWidget(self.home_workbench_button)
+        hero_layout.addLayout(hero_actions)
+        layout.addWidget(hero)
+
+        self.stats_row = QHBoxLayout()
+        self.stats_row.setSpacing(10)
+        self.home_stat_cards = {
+            "products": StatCard("", "0", "", "#63B3ED"),
+            "runs": StatCard("", "0", "", "#63C8B8"),
+            "running": StatCard("", "0", "", "#F5A524"),
+            "human": StatCard("", "0", "", "#EF8FB5"),
+        }
+        for card in self.home_stat_cards.values():
+            self.stats_row.addWidget(card, 1)
+        layout.addLayout(self.stats_row)
+
+        environment_label = QLabel()
+        environment_label.setObjectName("SectionHeader")
+        self.environment_header = environment_label
+        layout.addWidget(environment_label)
+        environment_row = QHBoxLayout()
+        environment_row.setSpacing(10)
+        self.environment_cards: list[tuple[Card, QLabel, QLabel, QLabel]] = []
+        environment_specs = [
+            ("runtime_ready", "runtime_detail", "#63C8B8"),
+            ("segmentation_ready", "segmentation_detail", "#F2A65A"),
+            ("product_store", "product_detail", "#63B3ED"),
+            ("output_store", "output_detail", "#B79CED"),
+        ]
+        for key, detail, color in environment_specs:
+            card = ClickableCard(key, color)
+            card.setMinimumHeight(92)
+            card.clicked.connect(self.open_environment_path)
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(12, 9, 12, 9)
+            title = QLabel()
+            title.setObjectName("PanelTitle")
+            caption = QLabel()
+            caption.setObjectName("Muted")
+            caption.setWordWrap(True)
+            status = QLabel(self.tr("ready"))
+            status.setObjectName("Muted")
+            card_layout.addWidget(title)
+            card_layout.addWidget(caption, 1)
+            card_layout.addWidget(status)
+            environment_row.addWidget(card, 1)
+            self.environment_cards.append((card, title, caption, status))
+        layout.addLayout(environment_row)
+
+        quick_header = QLabel()
+        quick_header.setObjectName("SectionHeader")
+        self.quick_header = quick_header
+        layout.addWidget(quick_header)
+        quick_grid = QGridLayout()
+        quick_grid.setSpacing(8)
+        self.quick_buttons: dict[str, QPushButton] = {}
+        quick_specs = [
+            ("plan-view", "#63B3ED"),
+            ("white-main", "#63C8B8"),
+            ("detail-sheet", "#B79CED"),
+            ("on-model", "#EF8FB5"),
+            ("colorway", "#F2A65A"),
+            ("marketplace-pack", "#DCBM5B"),
+        ]
+        for index, (recipe, color) in enumerate(quick_specs):
+            button = QPushButton()
+            button.setObjectName("QuickAction")
+            button.setMinimumHeight(48)
+            button.setStyleSheet(
+                f"QPushButton#QuickAction {{ border-left: 3px solid {color}; }}"
+            )
+            button.clicked.connect(lambda _=False, key=recipe: self.launch_recipe_from_home(key))
+            quick_grid.addWidget(button, index // 3, index % 3)
+            self.quick_buttons[recipe] = button
+        layout.addLayout(quick_grid)
+
+        recent_header = QLabel()
+        recent_header.setObjectName("SectionHeader")
+        self.recent_header = recent_header
+        layout.addWidget(recent_header)
+        self.home_recent_table = QTableWidget(0, 5)
+        self.home_recent_table.verticalHeader().setVisible(False)
+        self.home_recent_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.home_recent_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.home_recent_table.setMinimumHeight(210)
+        layout.addWidget(self.home_recent_table, 1)
 
     def create_announcement(self) -> QWidget:
         wrapper = QWidget()
@@ -744,6 +990,18 @@ class MainWindow(QMainWindow):
         product_frame.setMinimumWidth(290)
         product_frame.setMaximumWidth(370)
         splitter.addWidget(product_frame)
+
+        self.section_products = QLabel()
+        self.section_products.setObjectName("SectionLabel")
+        product_layout.addWidget(self.section_products)
+        self.product_search = QLineEdit()
+        self.product_search.setClearButtonEnabled(True)
+        self.product_search.textChanged.connect(self.render_products)
+        product_layout.addWidget(self.product_search)
+        self.product_list = QListWidget()
+        self.product_list.setMinimumHeight(132)
+        self.product_list.itemSelectionChanged.connect(self.on_product_selected)
+        product_layout.addWidget(self.product_list)
 
         form = QFormLayout()
         form.setLabelAlignment(Qt.AlignRight)
@@ -873,11 +1131,9 @@ class MainWindow(QMainWindow):
         controls.addWidget(self.folder_button)
         workflow_layout.addLayout(controls)
 
-        self.node_tree = QTreeWidget()
-        self.node_tree.itemSelectionChanged.connect(self.show_selected_node)
-        self.node_tree.setRootIsDecorated(False)
-        self.node_tree.setAlternatingRowColors(True)
-        workflow_layout.addWidget(self.node_tree, 1)
+        self.workflow_canvas = WorkflowCanvas()
+        self.workflow_canvas.selection_changed.connect(self.show_selected_node_by_name)
+        workflow_layout.addWidget(self.workflow_canvas, 1)
 
         detail_frame, detail_layout = self.panel("details")
         detail_frame.setMinimumWidth(280)
@@ -892,7 +1148,7 @@ class MainWindow(QMainWindow):
         self.artifact_preview.setMinimumHeight(220)
         self.artifact_preview.setAlignment(Qt.AlignCenter)
         self.artifact_preview.setStyleSheet(
-            "background:#fbfcfd;border:1px solid #dfe3e7;border-radius:5px;color:#6b747c"
+            "background:#191F25;border:1px solid #353D48;border-radius:6px;color:#79838F"
         )
         detail_layout.addWidget(self.artifact_preview, 1)
         self.artifact_list = QListWidget()
@@ -945,9 +1201,14 @@ class MainWindow(QMainWindow):
         frame, layout = self.panel("backends")
         outer.addWidget(frame, 1)
         self.stack.addWidget(page)
-        self.backend_browser = QTextBrowser()
-        self.backend_browser.setOpenExternalLinks(False)
-        layout.addWidget(self.backend_browser, 1)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        container = QWidget()
+        self.backend_grid = QGridLayout(container)
+        self.backend_grid.setContentsMargins(2, 2, 2, 2)
+        self.backend_grid.setSpacing(9)
+        scroll.setWidget(container)
+        layout.addWidget(scroll, 1)
 
     def create_logs(self) -> None:
         page = QWidget()
@@ -1068,6 +1329,7 @@ class MainWindow(QMainWindow):
         return load_run_state(number, recipe)
 
     def render_all(self) -> None:
+        self.render_home()
         self.render_products()
         self.render_recipe_combo()
         self.render_product_form()
@@ -1135,35 +1397,146 @@ class MainWindow(QMainWindow):
         self.attr_must_edit.setPlainText("\n".join(str(value) for value in attributes.get("must_preserve", [])))
         self.product_json_edit.setPlainText(json.dumps(record, ensure_ascii=False, indent=2) if record else "")
 
+    def render_home(self) -> None:
+        report = overview()
+        self.hero_title.setText(self.tr("hero_ready"))
+        self.hero_subtitle.setText(f"LongY Studio {APP_VERSION}")
+        self.hero_caption.setText(self.tr("hero_caption"))
+        self.home_workbench_button.setText(self.tr("go_workbench"))
+        self.home_run_button.setText(self.tr("launch_workflow"))
+
+        cards = self.home_stat_cards
+        cards["products"].set_value(
+            str(report.product_count), self.tr("product_count")
+        )
+        cards["products"].title_label.setText(self.tr("product_count"))
+        cards["runs"].set_value(str(report.run_count), self.tr("run_count"))
+        cards["runs"].title_label.setText(self.tr("run_count"))
+        cards["running"].set_value(str(report.running_count), self.tr("active_count"))
+        cards["running"].title_label.setText(self.tr("active_count"))
+        cards["human"].set_value(str(report.needs_human_count), self.tr("human_count"))
+        cards["human"].title_label.setText(self.tr("human_count"))
+
+        self.environment_header.setText(self.tr("environment"))
+        try:
+            from segmentation import model_path
+
+            model_ready = model_path().exists()
+        except Exception:
+            model_ready = False
+
+        states = [
+            (True, self.tr("runtime_detail")),
+            (model_ready, self.tr("segmentation_detail")),
+            ((ROOT / "workflow_products").exists(), self.tr("product_detail")),
+            ((ROOT / "workflow_runs").exists(), self.tr("output_detail")),
+        ]
+        titles = [
+            self.tr("runtime_ready"),
+            self.tr("segmentation_ready"),
+            self.tr("product_store"),
+            self.tr("output_store"),
+        ]
+        for (_, title, caption, status), (ready, detail), label in zip(
+            self.environment_cards, states, titles
+        ):
+            title.setText(label)
+            caption.setText(detail)
+            status.setText(self.tr("ready") if ready else self.tr("missing"))
+            status.setStyleSheet(
+                f"color:{'#63C8B8' if ready else '#E5484D'};font-weight:700"
+            )
+
+        self.quick_header.setText(self.tr("quick_actions"))
+        for recipe, button in self.quick_buttons.items():
+            info = RECIPE_INFO.get(recipe, {}).get(self.language, (recipe,))
+            button.setText(f"{info[0]}  ·  {info[1]}")
+
+        self.recent_header.setText(self.tr("recent_runs"))
+        headers = [
+            self.tr("time"),
+            self.tr("product"),
+            self.tr("recipe"),
+            self.tr("progress"),
+            self.tr("status"),
+        ]
+        self.home_recent_table.setColumnCount(len(headers))
+        self.home_recent_table.setHorizontalHeaderLabels(headers)
+        self.home_recent_table.setRowCount(min(6, len(self.run_states)))
+        for row, run in enumerate(self.run_states[:6]):
+            status = (
+                "running" if run["running"]
+                else "failed" if run["failed"]
+                else "needs_human" if run["needs_human"]
+                else "passed"
+            )
+            values = [
+                run["updated_at"],
+                run["number"],
+                self.recipe_title(run["recipe"]),
+                f"{run['passed']}/{run['total']}",
+                self.status_text(status),
+            ]
+            for column, value in enumerate(values):
+                self.home_recent_table.setItem(row, column, QTableWidgetItem(str(value)))
+        self.home_recent_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeToContents
+        )
+        self.home_recent_table.horizontalHeader().setStretchLastSection(True)
+
+    def launch_recipe_from_home(self, recipe: str) -> None:
+        self.current_recipe = recipe
+        self.settings["last_recipe"] = recipe
+        save_settings(self.settings)
+        self.render_recipe_combo()
+        self.switch_page(1, "workbench")
+
+    def launch_from_home(self) -> None:
+        recipe = self.settings.get("last_recipe", "full-studio")
+        if recipe not in self.recipe_nodes:
+            recipe = "full-studio"
+        self.current_recipe = recipe
+        index = self.backend_combo.findData("none")
+        if index >= 0:
+            self.backend_combo.setCurrentIndex(index)
+        self.render_recipe_combo()
+        self.switch_page(1, "workbench")
+        self.run_workflow()
+
     def render_nodes(self) -> None:
-        self.node_tree.clear()
         state = self.current_state or {}
         nodes = state.get("nodes", {})
         node_defs = self.recipe_nodes.get(self.current_recipe, [])
         known = {node["name"] for node in node_defs}
-        rows = [
-            (node["name"], node["branch"], nodes.get(node["name"], {}))
-            for node in node_defs
-        ]
-        rows.extend((name, "legacy", data) for name, data in nodes.items() if name not in known)
-        for name, branch, data in rows:
-            status = data.get("status", "pending")
-            item = QTreeWidgetItem(
-                [
-                    NODE_NAMES[self.language].get(name, name),
-                    BRANCH_NAMES[self.language].get(branch, branch),
-                    self.status_text(status),
-                    self.localized_message(data.get("message", "")),
-                ]
+        specs: list[CanvasNodeSpec] = []
+        for definition in node_defs:
+            name = definition["name"]
+            data = nodes.get(name, {})
+            specs.append(
+                CanvasNodeSpec(
+                    name=name,
+                    title=NODE_NAMES[self.language].get(name, name),
+                    branch=definition["branch"],
+                    status=self.status_text(data.get("status", "pending")),
+                    status_key=data.get("status", "pending"),
+                    message=self.localized_message(data.get("message", "")),
+                    requires=list(definition.get("requires", [])),
+                )
             )
-            item.setData(0, Qt.UserRole, name)
-            item.setToolTip(3, self.localized_message(data.get("message", "")))
-            color = STATUS_COLORS.get(status, "#65707d")
-            item.setForeground(2, Qt.GlobalColor.red if status == "failed" else Qt.GlobalColor.darkGreen if status == "passed" else Qt.GlobalColor.gray)
-            self.node_tree.addTopLevelItem(item)
-        self.node_tree.resizeColumnToContents(0)
-        self.node_tree.resizeColumnToContents(1)
-        self.node_tree.resizeColumnToContents(2)
+        for name, data in nodes.items():
+            if name not in known:
+                specs.append(
+                    CanvasNodeSpec(
+                        name=name,
+                        title=NODE_NAMES[self.language].get(name, name),
+                        branch="legacy",
+                        status=self.status_text(data.get("status", "pending")),
+                        status_key=data.get("status", "pending"),
+                        message=self.localized_message(data.get("message", "")),
+                        requires=[],
+                    )
+                )
+        self.workflow_canvas.render_workflow(specs)
 
     def render_templates(self) -> None:
         while self.template_grid.count():
@@ -1178,31 +1551,55 @@ class MainWindow(QMainWindow):
             searchable = " ".join([key, *info]).lower()
             if query and query not in searchable:
                 continue
-            card = QFrame()
-            card.setObjectName("Panel")
+            accent = RECIPE_COLORS.get(key, "#F28B2C")
+            card = ClickableCard(key, accent)
             card.setMinimumHeight(132)
+            card.clicked.connect(lambda value, recipe=key: self.open_recipe(recipe))
             layout = QVBoxLayout(card)
-            layout.setContentsMargins(9, 8, 9, 8)
+            layout.setContentsMargins(12, 10, 12, 10)
+            layout.setSpacing(7)
+            header = QHBoxLayout()
+            header.setSpacing(10)
+            icon_label = QLabel()
+            icon_path = Path(__file__).resolve().parent / "assets" / "icons" / RECIPE_ICONS.get(key, "full.svg")
+            icon = QPixmap(str(icon_path)).scaled(28, 28, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            icon_label.setPixmap(icon)
+            icon_label.setFixedSize(34, 34)
+            icon_label.setAlignment(Qt.AlignCenter)
+            icon_label.setStyleSheet("background:#232B33;border:1px solid #3A434F;border-radius:8px")
+            header.addWidget(icon_label)
+            title_column = QVBoxLayout()
+            title_column.setSpacing(0)
             title_row = QHBoxLayout()
             title = QLabel(info[0])
-            title.setStyleSheet("font-weight:650;font-size:12.5px")
+            title.setStyleSheet("font-weight:700;font-size:13px;color:#F5F8FB")
             count = QLabel(f"{len(nodes)} {self.tr('nodes')}")
             count.setObjectName("Muted")
             title_row.addWidget(title, 1)
             title_row.addWidget(count)
+            title_column.addLayout(title_row)
+            use = QLabel(info[1])
+            use.setObjectName("Muted")
+            title_column.addWidget(use)
+            header.addLayout(title_column, 1)
+            layout.addLayout(header)
             desc = QLabel(info[3])
             desc.setWordWrap(True)
             desc.setObjectName("Muted")
-            use = QLabel(f"{self.tr('use_case')}: {info[1]}")
-            use.setObjectName("Muted")
-            tags = QLabel(info[2])
-            tags.setObjectName("Muted")
+            layout.addWidget(desc, 1)
+            tags_row = QHBoxLayout()
+            tags_row.setSpacing(4)
+            for tag in info[2].split("、"):
+                chip = QLabel(tag.strip())
+                chip.setStyleSheet(
+                    "color:#9AA5B1;background:#242B33;border:1px solid #3A434F;"
+                    "border-radius:8px;padding:2px 7px;font-size:10px"
+                )
+                tags_row.addWidget(chip)
+            tags_row.addStretch(1)
+            layout.addLayout(tags_row)
             button = QPushButton(self.tr("template_open"))
             button.clicked.connect(lambda _=False, recipe=key: self.open_recipe(recipe))
-            layout.addLayout(title_row)
-            layout.addWidget(desc)
-            layout.addWidget(use)
-            layout.addWidget(tags)
             layout.addWidget(button, 0, Qt.AlignLeft)
             self.template_grid.addWidget(card, position // 3, position % 3)
             position += 1
@@ -1211,9 +1608,30 @@ class MainWindow(QMainWindow):
         headers = [self.tr("queue_updated"), self.tr("product"), self.tr("recipe"), self.tr("progress"), self.tr("status"), self.tr("directory")]
         self.queue_table.setColumnCount(len(headers))
         self.queue_table.setHorizontalHeaderLabels(headers)
-        self.queue_table.setRowCount(len(self.run_states))
-        for row, run in enumerate(self.run_states):
-            status = "running" if run["running"] else "failed" if run["failed"] else "needs_human" if run["needs_human"] else "passed"
+        queue_rows = [
+            {
+                "updated_at": "-",
+                "number": item["number"],
+                "recipe": item["recipe"],
+                "passed": 0,
+                "total": len(self.recipe_nodes.get(item["recipe"], [])),
+                "running": False,
+                "failed": 0,
+                "needs_human": 0,
+                "path": self.tr("queue_pending"),
+                "pending": True,
+            }
+            for item in self.pending_runs
+        ] + self.run_states
+        self.queue_table.setRowCount(len(queue_rows))
+        for row, run in enumerate(queue_rows):
+            status = (
+                "running" if run["running"]
+                else "failed" if run["failed"]
+                else "needs_human" if run["needs_human"]
+                else "pending" if run.get("pending")
+                else "passed"
+            )
             values = [run["updated_at"], run["number"], self.recipe_title(run["recipe"]), f"{run['passed']}/{run['total']}", self.status_text(status), run["path"]]
             for column, value in enumerate(values):
                 item = QTableWidgetItem(str(value))
@@ -1224,14 +1642,44 @@ class MainWindow(QMainWindow):
         self.queue_table.horizontalHeader().setStretchLastSection(True)
 
     def render_backends(self) -> None:
-        chunks = []
-        for backend in backend_catalog():
+        while self.backend_grid.count():
+            item = self.backend_grid.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        for index, backend in enumerate(backend_catalog()):
+            accent = "#63C8B8" if backend.key == "none" else "#F2A65A"
+            card = Card(accent)
+            card.setMinimumHeight(150)
+            layout = QVBoxLayout(card)
+            layout.setContentsMargins(13, 10, 13, 10)
+            layout.setSpacing(6)
+            title = QLabel(backend.name)
+            title.setStyleSheet("color:#F5F8FB;font-size:13px;font-weight:700")
             state = self.tr("available") if backend.available else self.tr("no_key")
-            key_note = self.tr("no_key_needed") if not backend.requires_key else self.tr("key_note")
-            chunks.append(
-                f"<p><b>{backend.name}</b><br>{state}<br>{backend.description}<br>{key_note}</p>"
+            state_color = "#63C8B8" if backend.available else "#E5484D"
+            state_label = QLabel(state)
+            state_label.setStyleSheet(
+                f"color:{state_color};border:1px solid {state_color};"
+                "border-radius:9px;padding:2px 8px;font-size:10px;font-weight:700"
             )
-        self.backend_browser.setHtml("".join(chunks))
+            state_label.setMaximumWidth(90)
+            state_label.setAlignment(Qt.AlignCenter)
+            title_row = QHBoxLayout()
+            title_row.addWidget(title, 1)
+            title_row.addWidget(state_label)
+            description = QLabel(backend.description)
+            description.setWordWrap(True)
+            description.setObjectName("Muted")
+            key_note = self.tr("no_key_needed") if not backend.requires_key else self.tr("key_note")
+            note = QLabel(key_note)
+            note.setWordWrap(True)
+            note.setObjectName("Muted")
+            layout.addLayout(title_row)
+            layout.addWidget(description, 1)
+            layout.addWidget(note)
+            self.backend_grid.addWidget(card, index // 2, index % 2)
+        self.backend_grid.setColumnStretch(0, 1)
+        self.backend_grid.setColumnStretch(1, 1)
 
     def render_logs(self) -> None:
         headers = [self.tr("time"), self.tr("product"), self.tr("recipe"), self.tr("node"), self.tr("status"), self.tr("message")]
@@ -1282,26 +1730,30 @@ class MainWindow(QMainWindow):
         running = sum(bool(run["running"]) for run in self.run_states)
         human = sum(run["needs_human"] for run in self.run_states)
         values = [
-            (self.tr("product_count"), str(len(self.products))),
-            (self.tr("run_count"), str(len(self.run_states))),
-            (self.tr("active_count"), str(running)),
-            (self.tr("human_count"), str(human)),
+            (self.tr("product_count"), str(len(self.products)), "#63B3ED"),
+            (self.tr("run_count"), str(len(self.run_states)), "#63C8B8"),
+            (self.tr("active_count"), str(running), "#F5A524"),
+            (self.tr("human_count"), str(human), "#EF8FB5"),
         ]
-        for label, value in values:
+        for label, value, color in values:
             chip = QLabel(f"{value} {label}")
-            chip.setStyleSheet("background:white;border:1px solid #d5d9de;border-radius:9px;padding:2px 8px;color:#4a545e;font-size:11px")
+            chip.setStyleSheet(
+                f"background:#222931;border:1px solid {color}55;border-radius:10px;"
+                f"padding:2px 9px;color:{color};font-size:11px;font-weight:650"
+            )
             self.chips_layout.addWidget(chip)
 
     def retranslate(self) -> None:
         self.setWindowTitle(f"{self.tr('app_title')} {APP_VERSION}")
-        self.brand_label.setText(self.tr("brand"))
-        self.brand_sublabel.setText(self.tr("brand_sub"))
+        self.brand_label.setText("LongY")
+        self.brand_sublabel.setText("Studio")
         self.section_nav.setText(self.tr("nav_workbench"))
         self.section_products.setText(self.tr("products"))
         for key, button in self.nav_buttons.items():
             button.setText(self.tr(f"nav_{key}"))
         self.refresh_button.setText(self.tr("refresh"))
         self.language_button.setText(self.tr("language_button"))
+        self.language_button_side.setText("EN" if self.language == "zh" else "中文")
         self.product_search.setPlaceholderText(self.tr("search_products"))
         self.new_type_edit.setPlaceholderText(self.tr("new_type") if self.language == "en" else "上衣 / 裤子 / 套装")
         self.attribute_group_label.setText(self.tr("attribute_group"))
@@ -1362,9 +1814,13 @@ class MainWindow(QMainWindow):
         self.product_json_label.setText(self.tr("product_json"))
         self.save_button.setText(self.tr("save"))
         self.force_check.setText(self.tr("rerun"))
-        self.run_button.setText(self.tr("running") if self.worker and self.worker.isRunning() else self.tr("run"))
+        if self.worker and self.worker.isRunning():
+            self.run_button.setText(self.tr("running"))
+        elif self.pending_runs:
+            self.run_button.setText(self.tr("queued_run"))
+        else:
+            self.run_button.setText(self.tr("run"))
         self.folder_button.setText(self.tr("open_folder"))
-        self.node_tree.setHeaderLabels([self.tr("node"), self.tr("branch"), self.tr("status"), self.tr("message")])
         self.artifact_list.setToolTip(self.tr("artifacts"))
         self.open_artifact_button.setText(self.tr("open_artifact"))
         self.preview_label_title.setText(self.tr("preview"))
@@ -1483,8 +1939,6 @@ class MainWindow(QMainWindow):
         if not self.current_number:
             QMessageBox.warning(self, self.tr("run"), self.tr("select_product"))
             return
-        if self.worker and self.worker.isRunning():
-            return
         backend = self.backend_combo.currentData() or "none"
         if backend != "none":
             answer = QMessageBox.question(self, self.tr("confirm_title"), self.tr("confirm_ai"))
@@ -1494,26 +1948,61 @@ class MainWindow(QMainWindow):
         record = self.product_records.get(self.current_number)
         if not record:
             return
-        self.worker = RunWorker(record, self.current_recipe, backend, self.force_check.isChecked())
+        item = {
+            "number": str(self.current_number),
+            "recipe": self.current_recipe,
+            "backend": backend,
+            "force": self.force_check.isChecked(),
+            "record": record,
+        }
+        if self.worker and self.worker.isRunning():
+            self.pending_runs.append(item)
+            self.run_button.setText(self.tr("queued_run"))
+            self.statusBar().showMessage(self.tr("queued_run"), 2500)
+            self.render_queue()
+            return
+        self._start_worker(item)
+
+    def _start_worker(self, item: dict) -> None:
+        record = item["record"]
+        self.current_number = item["number"]
+        self.current_recipe = item["recipe"]
+        self.worker = RunWorker(
+            record, item["recipe"], item["backend"], bool(item["force"])
+        )
         self.worker.finished_run.connect(self.on_run_finished)
         self.worker.failed_run.connect(self.on_run_failed)
-        self.run_button.setEnabled(False)
+        self.run_button.setEnabled(True)
         self.run_button.setText(self.tr("running"))
         self.worker.start()
         self.statusBar().showMessage(self.tr("run_started"), 3000)
 
     def on_run_finished(self, state: dict) -> None:
-        self.run_button.setEnabled(True)
-        self.run_button.setText(self.tr("run"))
+        item = self.worker.item if self.worker else {}
+        self.worker = None
+        self.current_number = item.get("number", self.current_number)
+        self.current_recipe = item.get("recipe", self.current_recipe)
         self.current_state = state
         self.load_data()
         self.statusBar().showMessage(self.tr("run_done"), 4000)
+        self._continue_queue()
 
     def on_run_failed(self, message: str) -> None:
-        self.run_button.setEnabled(True)
-        self.run_button.setText(self.tr("run"))
+        item = self.worker.item if self.worker else {}
+        self.worker = None
+        self.current_number = item.get("number", self.current_number)
+        self.current_recipe = item.get("recipe", self.current_recipe)
         QMessageBox.critical(self, self.tr("status_failed"), message)
         self.load_data()
+        self._continue_queue()
+
+    def _continue_queue(self) -> None:
+        if not self.pending_runs:
+            self.run_button.setText(self.tr("run"))
+            return
+        item = self.pending_runs.pop(0)
+        self.statusBar().showMessage(self.tr("start_next"), 2500)
+        self._start_worker(item)
 
     def open_run_folder(self) -> None:
         if not self.current_number:
@@ -1522,11 +2011,20 @@ class MainWindow(QMainWindow):
         if run_dir.exists():
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(run_dir)))
 
-    def show_selected_node(self) -> None:
-        items = self.node_tree.selectedItems()
-        if not items:
+    def open_environment_path(self, key: str) -> None:
+        paths = {
+            "runtime": Path(__file__).resolve().parent,
+            "segmentation": Path(__file__).resolve().parent / "assets" / "models",
+            "products": ROOT / "workflow_products",
+            "outputs": ROOT / "workflow_runs",
+        }
+        path = paths.get(key)
+        if path and path.exists():
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
+
+    def show_selected_node_by_name(self, name: str) -> None:
+        if not name:
             return
-        name = items[0].data(0, Qt.UserRole)
         data = (self.current_state or {}).get("nodes", {}).get(name, {})
         title = NODE_NAMES[self.language].get(name, name)
         html = f"<h3>{title}</h3><p><b>{self.tr('status')}</b>: {self.status_text(data.get('status', 'pending'))}</p><p>{self.localized_message(data.get('message', ''))}</p>"

@@ -73,3 +73,19 @@ git checkout main
 生成接口当日额度在 `172.png` 前中断；额度恢复后批处理会从 `172.png` 继续执行。
 
 后续生成完成后，`plan-view-only` 分支会同步更新。
+
+## LongY Studio
+
+本地服装图片生产工作台已移动到 `LongY_Studio/` 目录，使用 PySide6 原生桌面 GUI，不启动浏览器或 HTTP 服务。
+
+启动方式：
+
+```powershell
+python .\LongY_Studio\desktop_app.py
+```
+
+或双击：
+
+```text
+LongY_Studio\Launch_LongY_Studio_Desktop.bat
+```

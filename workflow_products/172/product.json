@@ -1,0 +1,73 @@
+{
+  "id": "172",
+  "source": "work_library/IMG_1113.HEIC",
+  "garment_type": "shirt",
+  "input_class": "B",
+  "piece_count": 1,
+  "capture_state": "hanging_or_worn",
+  "occlusion": "unknown",
+  "attributes": {
+    "color": "white with black vertical stripes",
+    "pattern": "vertical stripe",
+    "buttons": 5,
+    "collar": "wide pointed collar",
+    "sleeves": "long sleeves with buttoned cuffs",
+    "pockets": [],
+    "seams": [
+      "shoulder",
+      "side",
+      "cuff"
+    ],
+    "hem": "two tie details",
+    "lining": false,
+    "fabric": "lightweight woven",
+    "must_preserve": [
+      "stripe direction and spacing",
+      "five front buttons",
+      "buttoned cuffs",
+      "hem ties"
+    ]
+  },
+  "must_preserve": [
+    "stripe direction and spacing",
+    "five front buttons",
+    "buttoned cuffs",
+    "hem ties"
+  ],
+  "colorways": [],
+  "model_pose": "natural standing, front three-quarter body",
+  "model_references": [
+    {
+      "key": "modern",
+      "path": "model_library/modern-chinese/fullbody-final.png",
+      "style": "modern-chinese"
+    },
+    {
+      "key": "korean",
+      "path": "model_library/korean-minimal/fullbody-final.png",
+      "style": "korean-minimal"
+    },
+    {
+      "key": "eurasian",
+      "path": "model_library/eurasian-editorial/fullbody-final.png",
+      "style": "eurasian-editorial"
+    }
+  ],
+  "workflow": {
+    "plan_view_landmarks": [
+      "left_neck",
+      "right_neck",
+      "left_shoulder",
+      "right_shoulder",
+      "left_armhole",
+      "right_armhole",
+      "left_cuff",
+      "right_cuff",
+      "left_side_seam",
+      "right_side_seam",
+      "hem_left",
+      "hem_center",
+      "hem_right"
+    ]
+  }
+}

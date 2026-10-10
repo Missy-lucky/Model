@@ -7,3 +7,14 @@ __pycache__/
 .venv/
 final_plan_view_cache/
 plan_view_upload_cache/
+LongY_Studio/example/
+LongY_Studio/__pycache__/
+LongY_Studio/desktop_settings.json
+LongY_Studio/desktop_selftest.png
+LongY_Studio/segment_selftest.png
+LongY_Studio/desktop_error.log
+build/
+dist/
+workflow_runs/
+LongY_Studio/assets/models/*.onnx
+!LongY_Studio/assets/models/README.md

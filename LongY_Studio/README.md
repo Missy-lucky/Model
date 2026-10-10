@@ -1,0 +1,141 @@
+# LongY Studio
+
+LongY Studio 是本地桌面版服装图片生产工作台，使用 PySide6 原生 GUI，不启动浏览器，也不启动 HTTP 服务。当前版本为 `0.2.0`。
+
+## 启动
+
+双击：
+
+```text
+Launch_LongY_Studio_Desktop.bat
+```
+
+或在仓库根目录执行：
+
+```powershell
+python .\LongY_Studio\desktop_app.py
+```
+
+## 语言
+
+- 默认界面为全中文。
+- 点击右上角 `EN` 可切换到英文。
+- 英文界面点击 `中文` 可切回中文。
+- 语言选择保存在 `desktop_settings.json`。
+
+## 页面
+
+- 工作台：商品资料、生产链路、节点状态、节点产物。
+- 模板库：按用途和关键词查看生产链路。
+- 队列：查看全部运行进度、状态和目录。
+- 后端：查看确定性处理与 OpenRouter 可用状态。
+- 日志：汇总节点提示、人工介入和失败原因。
+- 帮助：快捷键、状态说明和生产原则。
+
+## 快捷键
+
+- `F1`：打开帮助。
+- `Ctrl+R`：刷新数据。
+
+## 独立版
+
+构建 Windows 独立目录版：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\LongY_Studio\build_windows.ps1
+```
+
+输出目录：
+
+```text
+dist/LongY_Studio/
+```
+
+构建脚本会先运行自动化测试，再调用 PyInstaller。若只想重新打包：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\LongY_Studio\build_windows.ps1 -SkipTests
+```
+
+本地完整构建可包含：
+
+- 原生桌面 GUI
+- 多链路工作流引擎
+- HEIC/JPEG 读取
+- 本地 ONNX 服装分割
+- 应用图标与版本信息
+
+## 生产链路
+
+- `plan-view`：服装平面图。
+- `white-main`：白底主图。
+- `detail-sheet`：细节检查。
+- `on-model`：模特上身图。
+- `colorway`：颜色变体。
+- `marketplace-pack`：渠道导出。
+- `full-studio`：多分支全流程。
+
+## 运行规则
+
+- 默认后端为“无 AI / 确定性处理”。
+- 选择 OpenRouter 后会先弹出确认窗口。
+- 原始图片库只读。
+- 中间产物写入 `workflow_runs/`。
+- 商品记录写入 `workflow_products/`。
+- 上游节点失败时，下游节点自动进入等待上游状态。
+
+## 分割模型
+
+Git 仓库不提交模型权重。先下载轻量模型：
+
+```text
+Invoke-WebRequest -Uri "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx" -OutFile ".\LongY_Studio\assets\models\u2netp.onnx"
+```
+
+如需更高精度，可将 `u2net.onnx` 放入：
+
+```text
+LongY_Studio/assets/models/
+```
+
+或用环境变量指定：
+
+```powershell
+$env:LONGY_SEGMENTATION_MODEL = "D:\models\u2net.onnx"
+```
+
+如果目录中同时存在 `u2net.onnx` 和 `u2netp.onnx`，程序优先使用 `u2net.onnx`；也可用环境变量强制指定模型。
+
+## 文件结构
+
+```text
+LongY_Studio/
+  desktop_app.py
+  apparel_studio.py
+  Launch_LongY_Studio_Desktop.bat
+  desktop_settings.json
+```
+
+数据仍在项目根目录：
+
+```text
+workflow_products/
+workflow_runs/
+work_library/
+work_library_plan_view/
+```
+
+## 依赖
+
+- PySide6
+- Pillow
+- NumPy
+- pillow-heif
+- onnxruntime
+
+## 测试
+
+```powershell
+$env:QT_QPA_PLATFORM="offscreen"
+python -m pytest -q .\tests
+```
